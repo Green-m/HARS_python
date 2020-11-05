@@ -19,7 +19,6 @@ global headers
 #
 # URL and http headers
 #
-#url = "https://ytgynipjfx-8443-cce-5.lf.templink.dev"
 url = "https://127.0.0.1:44443"
 url += "/search/"
 headers = [
