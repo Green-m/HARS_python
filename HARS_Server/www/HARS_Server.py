@@ -273,6 +273,8 @@ if __name__ == '__main__':
                 cmd = input("Command> ")
             else:
                 cmd = raw_input("Command> ")
+            if cmd == '':
+                continue
 
             wait = True
             print((Colors.BLUE + 'Awaiting response ...' + Colors.END)) 
